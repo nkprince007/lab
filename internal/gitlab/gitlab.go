@@ -5,7 +5,6 @@
 package gitlab
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,13 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
-
-	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
-	"github.com/tcnksm/go-gitconfig"
 	"github.com/xanzy/go-gitlab"
 	"github.com/zaquestion/lab/internal/git"
 )
@@ -35,8 +30,6 @@ var (
 	user  string
 )
 
-const defaultGitLabHost = "https://gitlab.com"
-
 // Host exposes the GitLab scheme://hostname used to interact with the API
 func Host() string {
 	return host
@@ -47,75 +40,10 @@ func User() string {
 	return user
 }
 
-// Init handles all of the credential setup and prompts for user input when not present. At the end it initializes a gitlab client for use throughout lab.
-func Init() {
-	reader := bufio.NewReader(os.Stdin)
-	var err error
-	host, err = gitconfig.Entire("gitlab.host")
-	if err != nil {
-		fmt.Printf("Enter default GitLab host (default: %s): ", defaultGitLabHost)
-		host, err = reader.ReadString('\n')
-		host = strings.TrimSpace(host)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if host == "" {
-			host = defaultGitLabHost
-		}
-		cmd := git.New("config", "--global", "gitlab.host", host)
-		err = cmd.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	}
-	var errt error
-	user, err = gitconfig.Entire("gitlab.user")
-	token, errt = gitconfig.Entire("gitlab.token")
-	if err != nil {
-		fmt.Print("Enter default GitLab user: ")
-		user, err = reader.ReadString('\n')
-		user = strings.TrimSpace(user)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if user == "" {
-			log.Fatal("git config gitlab.user must be set")
-		}
-		cmd := git.New("config", "--global", "gitlab.user", user)
-		err = cmd.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var tokenURL string
-		if strings.HasSuffix(host, "/") {
-			tokenURL = host + "profile/personal_access_tokens"
-		} else {
-			tokenURL = host + "/profile/personal_access_tokens"
-		}
-
-		// If the default user is being set this is the first time lab
-		// is being run.
-		if errt != nil {
-			fmt.Printf("Create a token here: %s\nEnter default GitLab token (scope: api): ", tokenURL)
-			byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				log.Fatal(err)
-			}
-			token := strings.TrimSpace(string(byteToken))
-
-			// Its okay for the key to be empty, since you can still call public repos
-			if token != "" {
-				cmd := git.New("config", "--global", "gitlab.token", token)
-				err = cmd.Run()
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-		}
-	}
-
+// Init initializes a gitlab client for use throughout lab.
+func Init(host, user, token string) {
+	host = host
+	user = user
 	lab = gitlab.NewClient(nil, token)
 	lab.SetBaseURL(host + "/api/v4")
 

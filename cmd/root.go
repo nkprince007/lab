@@ -6,17 +6,14 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"strconv"
 	"strings"
 	"syscall"
 	"text/template"
 	"unicode"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	gitconfig "github.com/tcnksm/go-gitconfig"
 	"github.com/zaquestion/lab/internal/git"
 	lab "github.com/zaquestion/lab/internal/gitlab"
@@ -156,25 +153,5 @@ func Execute() {
 	if err := RootCmd.Execute(); err != nil {
 		// Execute has already logged the error
 		os.Exit(1)
-	}
-}
-
-func init() {
-	cobra.OnInitialize(initConfig)
-}
-
-func initConfig() {
-	home, err := homedir.Dir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	viper.SetConfigType("hcl")
-	viper.AddConfigPath(path.Join(home, ".config"))
-	viper.AddConfigPath(".")
-	viper.AutomaticEnv()
-	err = viper.ReadInConfig()
-	if err != nil {
-		log.Fatal(err)
 	}
 }
